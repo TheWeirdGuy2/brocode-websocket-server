@@ -1,57 +1,66 @@
-const socket = new WebSocket('ws://localhost:3000'); // Correct WebSocket URL
-const startChatButton = document.getElementById('start-chat');
-const usernameInput = document.getElementById('username');
-const chatBox = document.getElementById('chat-box');
-const chatArea = document.getElementById('chat-area');
-const chatInput = document.getElementById('chat-input');
-const sendMessageButton = document.getElementById('send-message');
-const logoutButton = document.getElementById('logout');
-const loginContainer = document.getElementById('login-container');
-const fileInput = document.getElementById('file-input');
-const galleryIcon = document.getElementById('gallery-icon');
+const socket = new WebSocket("wss://brocode-websocket-server.onrender.com/"); // ✅ Updated WebSocket URL
+
+const startChatButton = document.getElementById("start-chat");
+const usernameInput = document.getElementById("username");
+const chatBox = document.getElementById("chat-box");
+const chatArea = document.getElementById("chat-area");
+const chatInput = document.getElementById("chat-input");
+const sendMessageButton = document.getElementById("send-message");
+const logoutButton = document.getElementById("logout");
+const loginContainer = document.getElementById("login-container");
+const fileInput = document.getElementById("file-input");
+const galleryIcon = document.getElementById("gallery-icon");
+const clearAllChatButton = document.getElementById("clear-all-chat");
+
 const creatorUsername = "admin"; // Define the creator username
-const clearAllChatButton = document.getElementById('clear-all-chat');
+let username = "";
 
-let username = '';
+// ✅ Handle WebSocket connection errors and reconnect if needed
+socket.onclose = () => {
+    console.warn("WebSocket closed. Trying to reconnect...");
+    setTimeout(() => {
+        location.reload(); // Reload page to reconnect
+    }, 3000);
+};
 
-// Start chat
-startChatButton.addEventListener('click', () => {
-    username = usernameInput.value;
+// ✅ Start chat
+startChatButton.addEventListener("click", () => {
+    username = usernameInput.value.trim();
     if (username) {
-        loginContainer.style.display = 'none';
-        chatBox.style.display = 'block';
-        socket.send(JSON.stringify({ type: 'chat', username, message: 'has joined the chat!' }));
-        checkIfCreator(username); // Check if the logged-in user is the creator
+        loginContainer.style.display = "none";
+        chatBox.style.display = "block";
+        socket.send(JSON.stringify({ type: "chat", username, message: "has joined the chat!" }));
+        checkIfCreator(username);
     } else {
-        alert('Please enter a username');
+        alert("Please enter a username");
     }
 });
 
-// Send a message
-sendMessageButton.addEventListener('click', () => {
-    const message = chatInput.value;
+// ✅ Send a message
+sendMessageButton.addEventListener("click", () => {
+    const message = chatInput.value.trim();
     if (message) {
-        socket.send(JSON.stringify({ type: 'chat', username, message }));
-        chatInput.value = '';  // Clear input field after sending
+        socket.send(JSON.stringify({ type: "chat", username, message }));
+        chatInput.value = ""; // Clear input field
     }
 });
 
-// Log out
-logoutButton.addEventListener('click', () => {
-    chatBox.style.display = 'none';
-    loginContainer.style.display = 'block';
-    socket.send(JSON.stringify({ type: 'chat', username, message: 'has left the chat.' }));
-    username = '';
-    checkIfCreator(''); // Reset creator-specific elements on logout
+// ✅ Log out
+logoutButton.addEventListener("click", () => {
+    chatBox.style.display = "none";
+    loginContainer.style.display = "block";
+    socket.send(JSON.stringify({ type: "chat", username, message: "has left the chat." }));
+    username = "";
+    checkIfCreator(""); // Reset UI
 });
 
-// Open file input when gallery icon is clicked
-galleryIcon.addEventListener('click', () => {
-    fileInput.click();  // Trigger file input
+// ✅ Open file input when gallery icon is clicked
+galleryIcon.addEventListener("click", () => {
+    fileInput.click();
 });
 
-// Handle file selection
-fileInput.addEventListener('change', (e) => {
+// ✅ Handle file selection and sending
+fileInput.addEventListener("change", (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
@@ -61,39 +70,37 @@ fileInput.addEventListener('change', (e) => {
                 file: {
                     name: file.name,
                     type: file.type,
-                    content: event.target.result // Base64 content of the file
+                    content: event.target.result // Base64 file content
                 }
             };
-            socket.send(JSON.stringify({ type: 'file', data: fileData }));
+            socket.send(JSON.stringify({ type: "file", data: fileData }));
         };
-        reader.readAsDataURL(file);  // Read the file as base64
+        reader.readAsDataURL(file);
     }
 });
 
-// Handle messages from WebSocket
+// ✅ Handle incoming WebSocket messages
 socket.onmessage = (event) => {
     const data = JSON.parse(event.data);
-    if (data.type === 'messages') {
-        data.data.forEach(msg => {
-            displayMessage(msg.username, msg.message, msg.file);
-        });
-    } else if (data.type === 'chat') {
+    if (data.type === "messages") {
+        data.data.forEach(msg => displayMessage(msg.username, msg.message, msg.file));
+    } else if (data.type === "chat") {
         displayMessage(data.data.username, data.data.message, null);
-    } else if (data.type === 'file') {
+    } else if (data.type === "file") {
         displayMessage(data.data.username, data.data.message, data.data.file);
     }
 };
 
-// Display messages
+// ✅ Display messages in chat
 function displayMessage(username, message, file) {
-    const msgDiv = document.createElement('div');
-    msgDiv.classList.add('message');
-    
+    const msgDiv = document.createElement("div");
+    msgDiv.classList.add("message");
+
     let messageContent = `<strong>${username}</strong>: ${message}`;
 
-    // Display file if present
+    // ✅ Display file (image or link)
     if (file) {
-        if (file.type.startsWith('image')) {
+        if (file.type.startsWith("image")) {
             messageContent += `<br><img src="${file.content}" alt="${file.name}" style="max-width: 200px;">`;
         } else {
             messageContent += `<br><a href="${file.content}" target="_blank">${file.name}</a>`;
@@ -102,32 +109,21 @@ function displayMessage(username, message, file) {
 
     msgDiv.innerHTML = messageContent;
     chatArea.appendChild(msgDiv);
-    chatArea.scrollTop = chatArea.scrollHeight;  // Scroll to the latest message
+    chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-// Check if the current user is the creator
+// ✅ Check if current user is the creator (admin)
 function checkIfCreator(username) {
     if (username === creatorUsername) {
-        clearAllChatButton.style.display = 'inline-block';
-        
-        // Add event listener for clearing all chat messages
-        clearAllChatButton.addEventListener('click', () => {
-            clearAllChats();
-        });
+        clearAllChatButton.style.display = "inline-block";
+        clearAllChatButton.onclick = () => clearAllChats();
     } else {
-        clearAllChatButton.style.display = 'none'; // Hide the button for non-creator users
+        clearAllChatButton.style.display = "none";
     }
 }
 
-// Function to clear all chat messages
+// ✅ Clear all chats (Admin only)
 function clearAllChats() {
-    // Clear the chat area
-    chatArea.innerHTML = '';
-
-    // Optionally, you can also broadcast a message saying the chat has been cleared
-    socket.send(JSON.stringify({
-        type: 'chat',
-        username: 'System',
-        message: 'The chat history has been cleared by the admin.'
-    }));
+    chatArea.innerHTML = "";
+    socket.send(JSON.stringify({ type: "chat", username: "System", message: "The chat history has been cleared by the admin." }));
 }
