@@ -90,7 +90,7 @@ wss.on('connection', (ws) => {
 // Serve static files (your HTML, CSS, JS files)
 app.use(express.static('public'));
 
-// Start HTTP server on port 3000
-server.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
+const PORT = process.env.PORT || 3000; // Use Railway's port or 3000 for local
+server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
